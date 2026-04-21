@@ -3,105 +3,142 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📄 PDF向きセンサー（最終調整）</title>
+    <title>👤 体向きセンサー + PDF</title>
     <style>
         *{margin:0;padding:0;box-sizing:border-box;}
-        body{font-family:-apple-system,sans-serif;height:100vh;overflow:hidden;background:linear-gradient(135deg,#ff9a9e 0%,#fecfef 50%,#fecfef 100%);color:white;text-align:center;transition:background 0.5s;}
-        body.pdf{background:linear-gradient(135deg,#a8edea 0%,#fed6e3 100%);}
-        body.list{background:linear-gradient(135deg,#ffecd2 0%,#fcb69f 100%);}
+        body{font-family:-apple-system,sans-serif;height:100vh;overflow:hidden;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;text-align:center;transition:all .6s ease;}
+        body.east{background:linear-gradient(135deg,#a8edea 0%,#fed6e3 100%);}
+        body.west{background:linear-gradient(135deg,#ffecd2 0%,#fcb69f 100%);}
         .container{max-width:95vw;padding:20px;height:100vh;display:flex;flex-direction:column;justify-content:center;}
-        .header{font-size:3.2em;font-weight:900;margin:20px 0;background:linear-gradient(45deg,#667eea,#764ba2);-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-shadow:0 0 30px rgba(102,126,234,0.6);}
-        .pdf-viewer{width:92%;height:380px;border-radius:25px;box-shadow:0 25px 70px rgba(0,0,0,0.4);border:4px solid rgba(255,255,255,0.6);margin:15px auto;}
-        .content{font-size:1.5em;line-height:1.7;background:rgba(255,255,255,0.2);backdrop-filter:blur(15px);padding:30px;border-radius:25px;max-height:40vh;overflow:auto;margin:15px 0;}
-        .instruction{font-size:1.4em;margin:25px 0;padding:20px;background:rgba(255,255,255,0.25);border-radius:20px;border:2px solid rgba(255,255,255,0.4);}
-        .debug{position:fixed;top:15px;left:15px;background:rgba(0,0,0,0.85);color:#00ff88;padding:15px;border-radius:20px;font-family:monospace;font-size:1em;max-width:90vw;box-shadow:0 10px 30px rgba(0,0,0,0.5);}
-        .btn{background:linear-gradient(45deg,#4facfe,#00f2fe);color:white;border:none;padding:20px 40px;font-size:1.4em;border-radius:50px;cursor:pointer;margin:12px;box-shadow:0 15px 40px rgba(79,172,254,0.4);transition:all .3s;font-weight:600;}
-        .btn:hover{transform:translateY(-6px) scale(1.06);box-shadow:0 20px 50px rgba(79,172,254,0.6);}
+        .header{font-size:3.5em;font-weight:900;margin:20px 0;background:linear-gradient(45deg,#ffd700,#ffed4e);-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-shadow:0 0 40px rgba(255,215,0,0.6);}
+        .pdf-viewer{width:92%;height:420px;border-radius:30px;box-shadow:0 30px 80px rgba(0,0,0,0.5);border:5px solid rgba(255,255,255,0.4);margin:20px auto;}
+        .content{font-size:1.6em;line-height:1.7;background:rgba(255,255,255,0.2);backdrop-filter:blur(20px);padding:35px;border-radius:30px;max-height:35vh;overflow:auto;margin:20px 0;box-shadow:0 25px 70px rgba(0,0,0,0.4);}
+        .instruction{font-size:1.5em;margin:30px 0;padding:25px;background:rgba(255,255,255,0.25);border-radius:25px;border:3px solid rgba(255,255,255,0.5);font-weight:600;}
+        .debug{position:fixed;top:20px;left:20px;background:rgba(0,0,0,0.9);color:#00ff88;padding:20px;border-radius:25px;font-family:monospace;font-size:1.1em;max-width:85vw;box-shadow:0 15px 50px rgba(0,0,0,0.6);}
+        .btn-large{background:linear-gradient(45deg,#4facfe,#00f2fe);color:white;border:none;padding:25px 50px;font-size:1.6em;border-radius:60px;cursor:pointer;margin:20px;box-shadow:0 20px 60px rgba(79,172,254,0.5);transition:all .4s;font-weight:700;}
+        .btn-large:hover{transform:translateY(-10px) scale(1.1);box-shadow:0 30px 80px rgba(79,172,254,0.7);}
         #mainScreen{display:none;}
+        .compass{position:relative;display:inline-block;margin:20px;}
+        .compass-circle{width:80px;height:80px;border:4px solid rgba(255,255,255,0.6);border-radius:50%;position:relative;display:inline-block;}
+        .needle{width:4px;height:30px;background:#ff4444;border-radius:2px;position:absolute;top:25px;left:38px;transform-origin:bottom center;transition:transform .3s;}
     </style>
 </head>
-<body class="pdf">
-    <div class="debug" id="debug">γ値を確認中...</div>
+<body>
+    <div class="debug" id="debug">胸ポケットに固定して左右回転...</div>
+    
     <div class="container">
         <div id="startScreen">
-            <div class="header">📱 PDF自動切り替え</div>
+            <div class="header">👤 体向きPDF自動</div>
             <div class="instruction">
-                <strong>あなたのiPhone仕様</strong><br>
-                ➡️ <strong>右傾け（γ負）= PDF</strong><br>
-                ⬅️ <strong>左傾け（γ正）= リスト</strong>
+                <strong>🎮 操作方法</strong><br>
+                📱 スマホを<strong>胸ポケット固定</strong><br>
+                ➡️ <strong>右向く（東）</strong> → PDF資料<br>
+                ⬅️ <strong>左向く（西）</strong> → チェックリスト
             </div>
-            <button class="btn" onclick="startSensor()">🎯 センサー開始</button>
+            <button class="btn-large" onclick="calibrateAndStart()">🎯 方位磁針キャリブレーション</button>
+            <div class="compass" id="compass">
+                <div class="compass-circle"></div>
+                <div class="needle" id="needle"></div>
+                <span style="font-size:1.2em;">現在の方位</span>
+            </div>
         </div>
+        
         <div id="mainScreen">
             <div class="header" id="title">document.pdf</div>
-            <div class="instruction" id="instruction">右傾けでPDF固定</div>
-            <iframe id="pdfViewer" class="pdf-viewer" src="document.pdf#zoom=110" frameborder="0"></iframe>
+            <div class="instruction" id="instruction">右向き（東）で固定</div>
+            <iframe id="pdfFrame" class="pdf-viewer" src="document.pdf#zoom=120" frameborder="0"></iframe>
             <div class="content" id="content"></div>
         </div>
     </div>
+
     <script>
-        let sensorActive = false;
+        let baseAlpha = 0, sensorActive = false, currentDirection = 'east';
         
-        async function startSensor() {
+        async function calibrateAndStart() {
             try {
-                if (DeviceOrientationEvent?.requestPermission) {
-                    await DeviceOrientationEvent.requestPermission();
-                }
+                if (DeviceOrientationEvent?.requestPermission) await DeviceOrientationEvent.requestPermission();
             } catch(e) {}
             
-            sensorActive = true;
-            document.getElementById('startScreen').style.display = 'none';
-            document.getElementById('mainScreen').style.display = 'block';
-            window.addEventListener('deviceorientation', handleTilt);
-            document.body.classList.add('pdf');
-            updateContent('pdf');
+            // 現在の方位を基準にキャリブレーション
+            window.addEventListener('deviceorientation', function first(e) {
+                baseAlpha = e.alpha || 0;
+                window.removeEventListener('deviceorientation', first);
+                sensorActive = true;
+                
+                document.getElementById('startScreen').style.display = 'none';
+                document.getElementById('mainScreen').style.display = 'block';
+                window.addEventListener('deviceorientation', handleBodyTurn);
+                
+                updateDebug(`基準α:${baseAlpha.toFixed(0)}°セット完了`);
+                showEast(); // 初期PDF
+            });
         }
         
-        function handleTilt(e) {
-            const gamma = e.gamma || 0;
-            updateDebug(`γ:${gamma.toFixed(1)}° | ${gamma>10?'左リスト':gamma<-10?'右PDF':'中央'}`);
+        function handleBodyTurn(e) {
+            const alpha = e.alpha || 0; // 0=北、90=東、180=南、270=西
+            const relativeAlpha = (alpha - baseAlpha + 360) % 360;
             
-            // あなたのiPhone仕様に最適化
-            if (gamma > 10) {  // 左傾き（+）
-                if (!document.body.classList.contains('list')) {
-                    document.body.classList.remove('pdf');
-                    document.body.classList.add('list');
-                    updateContent('list');
+            // 方位コンパス更新
+            document.getElementById('needle').style.transform = `rotate(${relativeAlpha-90}deg)`;
+            
+            updateDebug(`α:${alpha.toFixed(0)}° 相対:${relativeAlpha.toFixed(0)}° | ${getDirection(relativeAlpha)}`);
+            
+            // 体回転検知（90°範囲）
+            if (relativeAlpha > 45 && relativeAlpha < 135) { // 東側
+                if (currentDirection !== 'east') {
+                    currentDirection = 'east';
+                    document.body.classList.add('east');
+                    document.body.classList.remove('west');
+                    showEast();
                 }
-            } else if (gamma < -10) {  // 右傾き（-）
-                if (!document.body.classList.contains('pdf')) {
-                    document.body.classList.remove('list');
-                    document.body.classList.add('pdf');
-                    updateContent('pdf');
+            } else if (relativeAlpha > 225 && relativeAlpha < 315) { // 西側
+                if (currentDirection !== 'west') {
+                    currentDirection = 'west';
+                    document.body.classList.add('west');
+                    document.body.classList.remove('east');
+                    showWest();
                 }
             }
         }
         
-        function updateContent(mode) {
-            const isPdf = mode === 'pdf';
-            document.getElementById('title').textContent = isPdf ? '📄 document.pdf' : '✅ チェックリスト';
-            document.getElementById('instruction').innerHTML = isPdf ? 
-                '⬅️左傾け（γ+）でリストへ' : '➡️右傾け（γ-）でPDFへ';
-            document.getElementById('pdfViewer').style.display = isPdf ? 'block' : 'none';
-            
-            document.getElementById('content').innerHTML = isPdf ? `
-                <strong>🎯 PDF営業資料（自動）</strong><br>
-                • GitHub HTTPS直読み込み<br>
-                • 自動ズーム調整<br>
-                • ピンチ操作対応<br><br>
-                <strong>📱 動作確認</strong><br>
-                γ${gamma>0?'>10左':'<-10右'}で切り替え
-            ` : `
-                <strong>契約チェックリスト</strong><br><br>
-                ✅ 見積書発行<br>
-                ✅ 仕様確認<br>
-                ⚠️ 部長承認 <em>(進行中)</em><br>
-                ⏳ 決裁印<br>
-                ⏳ 支払条件<br><br>
-                <div style="margin-top:20px;font-size:1.1em;">
-                    <strong>⏰ 締切：4/28</strong>
+        function showEast() {
+            document.getElementById('title').textContent = '📄 document.pdf（東向き）';
+            document.getElementById('instruction').innerHTML = '⬅️ 左回り（西）でチェックリストへ';
+            document.getElementById('pdfFrame').style.display = 'block';
+            document.getElementById('content').innerHTML = `
+                <strong>🎯 営業PDF資料</strong><br>
+                • 自動GitHub配信<br>
+                • 高解像度表示<br>
+                • ズーム/パン対応<br><br>
+                <strong>📱 東方位固定</strong><br>
+                α45°〜135°で表示
+            `;
+        }
+        
+        function showWest() {
+            document.getElementById('title').textContent = '✅ チェックリスト（西向き）';
+            document.getElementById('instruction').innerHTML = '➡️ 右回り（東）でPDFへ';
+            document.getElementById('pdfFrame').style.display = 'none';
+            document.getElementById('content').innerHTML = `
+                <h3 style="margin-bottom:20px;">契約チェックリスト</h3>
+                <div style="text-align:left;font-size:1.1em;">
+                    ✅ 見積書 <em>完了</em><br>
+                    ✅ 仕様確認 <em>完了</em><br>
+                    ⚠️ 部長承認 <em>申請中</em><br>
+                    ⏳ 決裁印 <em>保留</em><br>
+                    ⏳ 支払条件 <em>調整中</em>
+                </div>
+                <div style="margin-top:25px;padding:20px;background:rgba(255,255,255,0.4);border-radius:20px;">
+                    <strong>⏰ 目標：4/28締切</strong>
                 </div>
             `;
+        }
+        
+        function getDirection(alpha) {
+            if (alpha > 315 || alpha < 45) return '北';
+            if (alpha > 45 && alpha < 135) return '東(PDF)';
+            if (alpha > 135 && alpha < 225) return '南';
+            return '西(リスト)';
         }
         
         function updateDebug(text) {
