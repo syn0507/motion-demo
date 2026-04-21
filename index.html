@@ -2,173 +2,103 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>🔄 向きセンサーデモ</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔍 診断モード</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: -apple-system, sans-serif;
-            height: 100vh; overflow: hidden;
-            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%);
-            color: #333; text-align: center; transition: background 0.5s ease;
-        }
-        body.right { background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); }
-        body.left { background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%); }
-        .container { max-width: 95vw; padding: 20px; height: 100vh; display: flex; flex-direction: column; justify-content: center; }
-        .header {
-            font-size: 3.5em; font-weight: 900; margin: 20px 0;
-            background: linear-gradient(45deg, #667eea, #764ba2); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-            text-shadow: 0 0 40px rgba(102,126,234,0.6); transition: all 0.3s;
-        }
-        .pdf-viewer {
-            width: 95%; height: 400px; border-radius: 25px; box-shadow: 0 25px 70px rgba(0,0,0,0.4);
-            border: 5px solid rgba(255,255,255,0.8); background: white; margin: 20px auto; display: block;
-        }
-        .content {
-            font-size: 1.5em; line-height: 1.6; background: rgba(255,255,255,0.95);
-            color: #333; padding: 25px; border-radius: 30px; backdrop-filter: blur(20px);
-            max-height: 45vh; overflow-y: auto; margin: 15px 0; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            transition: all 0.4s ease;
-        }
-        .content.show { transform: scale(1); }
-        .instruction {
-            font-size: 1.5em; margin: 25px 0; padding: 20px; background: rgba(255,255,255,0.8);
-            border-radius: 25px; border: 3px solid rgba(255,255,255,0.5); font-weight: 600;
-        }
-        .debug {
-            position: fixed; top: 15px; left: 15px; right: 15px; background: rgba(0,0,0,0.85);
-            color: #00ff88; padding: 15px; border-radius: 20px; font-family: monospace; font-size: 1em;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        }
-        .btn { 
-            background: linear-gradient(45deg, #4facfe, #00f2fe); color: white; border: none; 
-            padding: 20px 45px; font-size: 1.4em; border-radius: 50px; cursor: pointer; margin: 15px;
-            box-shadow: 0 15px 35px rgba(79,172,254,0.4); transition: all 0.3s; font-weight: 600;
-        }
-        .btn:hover { transform: translateY(-8px) scale(1.08); box-shadow: 0 20px 45px rgba(79,172,254,0.6); }
-        .status { font-size: 2em; padding: 15px; background: rgba(255,255,255,0.9); border-radius: 20px; margin: 10px 0; }
-        @keyframes glow { 0%,100%{text-shadow:0 0 20px rgba(255,255,255,0.8);} 50%{text-shadow:0 0 40px rgba(255,255,255,1);} }
-        .glow { animation: glow 1.5s infinite; }
-        .pdf-controls { margin: 15px 0; font-size: 1.2em; }
-        .pdf-controls button { background: #28a745; color: white; border: none; padding: 10px 20px; margin: 5px; border-radius: 20px; cursor: pointer; }
+        body { font-family: sans-serif; padding: 20px; background: #f0f0f0; }
+        .debug { background: #fff; border: 2px solid #ff6b6b; padding: 20px; margin: 20px 0; border-radius: 10px; font-family: monospace; }
+        .status { font-size: 2em; padding: 20px; background: #4ecdc4; color: white; border-radius: 15px; margin: 20px 0; }
+        button { background: #ff6b6b; color: white; border: none; padding: 15px 30px; font-size: 1.2em; border-radius: 25px; cursor: pointer; margin: 10px; }
+        button:hover { background: #ff5252; transform: scale(1.05); }
+        .gamma { font-size: 3em; font-weight: bold; color: #2196f3; margin: 20px 0; }
+        .log { height: 300px; overflow: auto; background: white; border: 1px solid #ddd; padding: 15px; border-radius: 10px; font-size: 0.9em; }
     </style>
 </head>
 <body>
-    <div class="debug" id="debug">🔄 右/左に端末を向けてください</div>
+    <h1>🔍 センサー診断ツール</h1>
     
-    <div class="container">
-        <div id="permissionScreen">
-            <div class="header glow">📱 PDF向きセンサー</div>
-            <div class="instruction"><strong>右向き→document.pdf　左向き→チェックリスト</strong></div>
-            <button class="btn" onclick="requestPermission()">🎯 センサー開始</button>
-            <div class="status">document.pdf が自動読み込みされます</div>
-        </div>
-
-        <div id="mainScreen" style="display:none;">
-            <div class="header" id="currentScreen">PDF資料</div>
-            <div class="instruction" id="instruction"></div>
-            
-            <!-- PDFビューア（GitHub自動HTTPS） -->
-            <iframe id="pdfViewer" class="pdf-viewer" src="document.pdf#view=FitH&scrollbar=0" frameborder="0"></iframe>
-            
-            <div class="pdf-controls">
-                <button onclick="zoomIn()">🔍 拡大</button>
-                <button onclick="zoomOut()">🔎 縮小</button>
-                <button onclick="toggleFullscreen()">📱 フルスクリーン</button>
-            </div>
-            
-            <div class="content" id="content"></div>
-        </div>
+    <div class="status" id="status">準備中...</div>
+    
+    <button onclick="startTest()">🚀 センサー診断開始</button>
+    <button onclick="resetPermission()">🔄 権限リセット</button>
+    
+    <div class="gamma" id="gammaDisplay">γ: --°</div>
+    
+    <div class="debug">
+        <strong>環境情報</strong><br>
+        <div id="envInfo">読み込み中...</div>
     </div>
+    
+    <div class="log" id="log"></div>
 
     <script>
-        const TILT_RIGHT = 15; const TILT_LEFT = -15;
-        let permissionGranted = false, currentScreen = '資料';
-        let zoomLevel = 100;
+        let orientationHandler;
         
-        async function requestPermission() {
+        function log(msg) {
+            const log = document.getElementById('log');
+            log.innerHTML += `[${new Date().toLocaleTimeString()}] ${msg}<br>`;
+            log.scrollTop = log.scrollHeight;
+        }
+        
+        async function startTest() {
+            log('=== 診断開始 ===');
+            
+            // 環境確認
+            const ua = navigator.userAgent;
+            const isIOS = /iPhone|iPad|iPod/.test(ua);
+            document.getElementById('envInfo').innerHTML = `
+                UserAgent: ${ua.substring(0,50)}...<br>
+                iOS: ${isIOS}<br>
+                Permission API: ${!!DeviceOrientationEvent?.requestPermission}
+            `;
+            
+            // 権限リクエスト
             try {
                 if (DeviceOrientationEvent?.requestPermission) {
-                    permissionGranted = await DeviceOrientationEvent.requestPermission() === 'granted';
-                } else permissionGranted = true;
-            } catch(e) { permissionGranted = true; }
-            
-            if (permissionGranted) {
-                document.getElementById('permissionScreen').style.display = 'none';
-                document.getElementById('mainScreen').style.display = 'block';
-                window.addEventListener('deviceorientation', handleOrientation);
-                updateDebug('✅ document.pdf 読み込み完了');
-                switchScreen('資料');
+                    log('iOS検出：権限リクエスト実行');
+                    const permission = await DeviceOrientationEvent.requestPermission();
+                    log(`権限結果：${permission}`);
+                    if (permission !== 'granted') {
+                        document.getElementById('status').innerHTML = '❌ 権限拒否されました';
+                        return;
+                    }
+                } else {
+                    log('Android/PC：自動許可');
+                }
+            } catch(e) {
+                log(`権限エラー：${e.message}`);
             }
-        }
-        
-        function handleOrientation(event) {
-            const gamma = event.gamma || 0;
-            updateDebug(`γ:${gamma.toFixed(1)}° ${gamma>TILT_RIGHT?'➡️PDF':gamma<TILT_LEFT?'⬅️リスト':'中間'}`);
             
-            if (gamma > TILT_RIGHT && currentScreen !== '資料') {
-                switchScreen('資料'); document.body.classList.add('right');
-            } else if (gamma < TILT_LEFT && currentScreen !== 'チェックリスト') {
-                switchScreen('チェックリスト'); document.body.classList.add('left');
-            }
+            // センサー監視開始
+            document.getElementById('status').innerHTML = '✅ 監視中！右左に傾けてください';
+            orientationHandler = (e) => {
+                const gamma = e.gamma?.toFixed(1) || 'N/A';
+                document.getElementById('gammaDisplay').textContent = `γ: ${gamma}°`;
+                log(`gamma=${gamma} alpha=${e.alpha?.toFixed(1)||'N/A'} beta=${e.beta?.toFixed(1)||'N/A'}`);
+                
+                // 判定テスト
+                if (gamma > 20) log('🎉 右検知！');
+                if (gamma < -20) log('🎉 左検知！');
+            };
+            
+            window.addEventListener('deviceorientation', orientationHandler);
+            log('✅ deviceorientationリスナー登録完了');
         }
         
-        function switchScreen(screen) {
-            currentScreen = screen;
-            const data = screen === '資料' ? pdfData : listData;
-            document.getElementById('currentScreen').textContent = data.title;
-            document.getElementById('instruction').innerHTML = data.instruction;
-            document.getElementById('content').innerHTML = data.content;
-            document.getElementById('pdfViewer').src = screen === '資料' ? 'document.pdf#view=FitH&zoom=' + zoomLevel : '';
-            document.querySelector('.content').classList.add('show');
+        function resetPermission() {
+            log('権限リセット：Safari設定→モーション&方向→許可 に変更してください');
+            window.removeEventListener('deviceorientation', orientationHandler);
+            document.getElementById('gammaDisplay').textContent = 'γ: --°';
+            document.getElementById('log').innerHTML = '';
+            document.getElementById('status').innerHTML = '準備中...';
         }
         
-        // PDFコントロール
-        function zoomIn() { zoomLevel += 20; updatePDF(); }
-        function zoomOut() { zoomLevel = Math.max(50, zoomLevel - 20); updatePDF(); }
-        function toggleFullscreen() {
-            const pdf = document.getElementById('pdfViewer');
-            if (pdf.requestFullscreen) pdf.requestFullscreen();
-        }
-        function updatePDF() {
-            document.getElementById('pdfViewer').src = `document.pdf#view=FitH&zoom=${zoomLevel}`;
-        }
-        
-        // コンテンツデータ
-        const pdfData = {
-            title: '📄 document.pdf',
-            instruction: '🔄 右向きでPDF閲覧 ➡️<br><small>拡大/縮小/フルスクリーン対応</small>',
-            content: `
-                <div style="font-size:1.4em;">
-                    <strong>✅ PDF機能</strong><br>
-                    • 自動読み込み（GitHub HTTPS）<br>
-                    • ピンチズーム対応<br>
-                    • フルスクリーンモード<br>
-                    • 営業資料に最適<br><br>
-                    
-                    <strong>🎮 操作</strong><br>
-                    ➡️ 右向き：PDF固定<br>
-                    ⬅️ 左向き：チェックリスト<br>
-                    🔍 拡大/縮小ボタン
-                </div>
-            `
-        };
-        
-        const listData = {
-            title: '✅ チェックリスト',
-            instruction: '🔄 左向きで操作 ⬅️',
-            content: `
-                <h3 style="font-size:2em;margin-bottom:20px;">契約手続き</h3>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;font-size:1.3em;">
-                    <div style="background:#d4edda;padding:20px;border-radius:15px;"><strong>✅完了</strong><br>見積書<br>仕様確認</div>
-                    <div style="background:#fff3cd;padding:20px;border-radius:15px;"><strong>⚠️進行中</strong><br>部長承認<br>法務チェック</div>
-                    <div style="background:#f8d7da;padding:20px;border-radius:15px;"><strong>⏳残タスク</strong><br>決裁印<br>支払条件</div>
-                </div>
-                <div style="margin-top:25px;padding:20px;background:#e9ecef;border-radius:15px;">
-                    <strong>⏰ 締切：4/28（残7日）</strong>
-                </div>
-            `
-        };
+        // ページ読み込み時診断
+        window.addEventListener('DOMContentLoaded', () => {
+            log('ページ読み込み完了');
+            log(`URL: ${window.location.href}`);
+            log(`HTTPS: ${window.location.protocol === 'https:'}`);
+        });
     </script>
 </body>
 </html>
