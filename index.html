@@ -1,4 +1,171 @@
-胸ポケット固定 → 🎯開始
-・正面/後ろ = 待機画面（何もなし）
-・右回転45°〜135° = document.pdf（右向き）
-・左回転225°〜315° = チェックリスト（左向き）
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>👤 体向き3分割 + PDF</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;}
+        body{font-family:-apple-system,sans-serif;height:100vh;overflow:hidden;background:linear-gradient(135deg,#90be6d 0%,#43c6ac 100%);color:white;text-align:center;transition:all .6s ease;}
+        body.pdf-right{background:linear-gradient(135deg,#ffecd2 0%,#fcb69f 100%);}
+        body.list-left{background:linear-gradient(135deg,#a8edea 0%,#fed6e3 100%);}
+        body.center{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);}
+        .container{max-width:95vw;padding:20px;height:100vh;display:flex;flex-direction:column;justify-content:center;}
+        .header{font-size:3.5em;font-weight:900;margin:20px 0;background:linear-gradient(45deg,#ffd700,#ffed4e);-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-shadow:0 0 40px rgba(255,215,0,0.6);}
+        .pdf-viewer{width:92%;height:420px;border-radius:30px;box-shadow:0 30px 80px rgba(0,0,0,0.5);border:5px solid rgba(255,255,255,0.4);margin:20px auto;}
+        .content{font-size:1.6em;line-height:1.7;background:rgba(255,255,255,0.2);backdrop-filter:blur(20px);padding:35px;border-radius:30px;max-height:35vh;overflow:auto;margin:20px 0;box-shadow:0 25px 70px rgba(0,0,0,0.4);}
+        .instruction{font-size:1.5em;margin:30px 0;padding:25px;background:rgba(255,255,255,0.25);border-radius:25px;border:3px solid rgba(255,255,255,0.5);font-weight:600;}
+        .debug{position:fixed;top:20px;left:20px;background:rgba(0,0,0,0.9);color:#00ff88;padding:20px;border-radius:25px;font-family:monospace;font-size:1.1em;max-width:85vw;box-shadow:0 15px 50px rgba(0,0,0,0.6);}
+        .btn-large{background:linear-gradient(45deg,#4facfe,#00f2fe);color:white;border:none;padding:25px 50px;font-size:1.6em;border-radius:60px;cursor:pointer;margin:20px;box-shadow:0 20px 60px rgba(79,172,254,0.5);transition:all .4s;font-weight:700;}
+        .btn-large:hover{transform:translateY(-10px) scale(1.1);box-shadow:0 30px 80px rgba(79,172,254,0.7);}
+        #mainScreen,#pdfFrame,#listFrame{display:none;}
+        .compass{position:relative;display:inline-block;margin:25px;}
+        .compass-circle{width:90px;height:90px;border:5px solid rgba(255,255,255,0.7);border-radius:50%;position:relative;display:inline-block;box-shadow:0 0 30px rgba(255,255,255,0.4);}
+        .needle{width:5px;height:35px;background:linear-gradient(to top,#ff4444,#ff7777);border-radius:3px;position:absolute;top:27.5px;left:42.5px;transform-origin:bottom center;transition:transform .4s;box-shadow:0 0 10px rgba(255,68,68,0.6);}
+        .direction-badge{position:absolute;top:-10px;font-size:1.2em;font-weight:700;}
+    </style>
+</head>
+<body class="center">
+    <div class="debug" id="debug">胸固定 → 左右体回転で3分割</div>
+    
+    <div class="container">
+        <div id="startScreen">
+            <div class="header">👤 体向き3分割デモ</div>
+            <div class="instruction">
+                <strong>📱 胸ポケット固定</strong><br>
+                ➡️ <strong>右向く</strong> = PDF資料<br>
+                ⬅️ <strong>左向く</strong> = チェックリスト<br>
+                <strong>真ん中</strong> = 待機画面
+            </div>
+            <button class="btn-large" onclick="start3way()">🎯 3分割開始</button>
+            <div class="compass" id="compass">
+                <div class="compass-circle">
+                    <div class="direction-badge" id="dirBadge">中</div>
+                </div>
+                <div class="needle" id="needle"></div>
+                <span style="font-size:1.3em;margin-top:10px;">体の方位</span>
+            </div>
+        </div>
+        
+        <div id="mainScreen">
+            <div class="header" id="title">待機中</div>
+            <div class="instruction" id="instruction">左右に体を向けてください</div>
+            
+            <!-- PDF（右） -->
+            <iframe id="pdfFrame" class="pdf-viewer" src="document.pdf#zoom=115" frameborder="0"></iframe>
+            
+            <!-- チェックリスト（左）コンテンツ -->
+            <div class="content" id="listContent"></div>
+            
+            <!-- 待機中コンテンツ -->
+            <div class="content" id="centerContent"></div>
+        </div>
+    </div>
+
+    <script>
+        let baseAlpha = 0, currentMode = 'center';
+        
+        async function start3way() {
+            try {
+                if (DeviceOrientationEvent?.requestPermission) await DeviceOrientationEvent.requestPermission();
+            } catch(e) {}
+            
+            // キャリブレーション
+            const handler = e => {
+                baseAlpha = e.alpha || 0;
+                window.removeEventListener('deviceorientation', handler);
+                window.addEventListener('deviceorientation', handle3wayTurn);
+                document.getElementById('startScreen').style.display = 'none';
+                document.getElementById('mainScreen').style.display = 'block';
+                updateDebug(`基準方位:${Math.round(baseAlpha)}° 設定完了`);
+                update3way('center');
+            };
+            window.addEventListener('deviceorientation', handler);
+        }
+        
+        function handle3wayTurn(e) {
+            const alpha = e.alpha || 0;
+            const relative = (alpha - baseAlpha + 360) % 360;
+            
+            // コンパス更新
+            document.getElementById('needle').style.transform = `rotate(${relative-90}deg)`;
+            document.getElementById('dirBadge').textContent = getDirection(relative);
+            
+            updateDebug(`α:${alpha.toFixed(0)}° 相対:${relative.toFixed(0)}° | ${getDirection(relative)}`);
+            
+            // 3分割判定（各90°）
+            let newMode;
+            if (relative > 315 || relative < 45) newMode = 'center';      // 北
+            else if (relative > 45 && relative < 135) newMode = 'pdf';    // 東（右）=PDF
+            else if (relative > 135 && relative < 225) newMode = 'center'; // 南
+            else newMode = 'list';                                        // 西（左）=リスト
+            
+            if (newMode !== currentMode) {
+                currentMode = newMode;
+                update3way(newMode);
+            }
+        }
+        
+        function update3way(mode) {
+            // 背景変更
+            document.body.className = mode;
+            
+            // タイトル/指示
+            const titles = {pdf:'📄 document.pdf（右向き）', list:'✅ チェックリスト（左向き）', center:'⏳ 待機中（正面）'};
+            const instrs = {
+                pdf:'⬅️ 左回転でリストへ',
+                list:'➡️ 右回転でPDFへ',
+                center:'左右どちらかに体を向けて'
+            };
+            
+            document.getElementById('title').textContent = titles[mode];
+            document.getElementById('instruction').innerHTML = instrs[mode];
+            
+            // 表示制御
+            document.getElementById('pdfFrame').style.display = mode === 'pdf' ? 'block' : 'none';
+            document.getElementById('listContent').style.display = mode === 'list' ? 'block' : 'none';
+            document.getElementById('centerContent').style.display = mode === 'center' ? 'block' : 'none';
+            
+            // コンテンツ更新
+            if (mode === 'pdf') {
+                // PDF自動表示（何も書かなくてOK）
+            } else if (mode === 'list') {
+                document.getElementById('listContent').innerHTML = `
+                    <h3>契約チェックリスト</h3>
+                    <div style="text-align:left;font-size:1.1em;">
+                        ✅ 見積書発行<br>
+                        ✅ 仕様確認<br>
+                        ⚠️ 部長承認（申請中）<br>
+                        ⏳ 決裁印<br>
+                        ⏳ 支払条件調整
+                    </div>
+                    <div style="margin-top:25px;padding:20px;background:rgba(255,255,255,0.4);border-radius:20px;font-size:1.2em;">
+                        <strong>⏰ 締切：4/28（残り7日）</strong>
+                    </div>
+                `;
+            } else { // center
+                document.getElementById('centerContent').innerHTML = `
+                    <div style="font-size:1.3em;">
+                        <strong>🎯 準備完了</strong><br><br>
+                        📱 胸ポケットに固定<br>
+                        ➡️ 右回転 → <strong>document.pdf</strong><br>
+                        ⬅️ 左回転 → <strong>チェックリスト</strong><br>
+                        <strong>現在：待機中</strong>
+                    </div>
+                `;
+            }
+        }
+        
+        function getDirection(alpha) {
+            if (alpha > 315 || alpha < 45) return '正面（待機）';
+            if (alpha > 45 && alpha < 135) return '右（PDF）';
+            if (alpha > 135 && alpha < 225) return '後ろ';
+            return '左（リスト）';
+        }
+        
+        function updateDebug(text) {
+            document.getElementById('debug').textContent = text;
+        }
+    </script>
+</body>
+</html>
