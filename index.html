@@ -3,117 +3,105 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📱 最終版 - PDFモーション</title>
+    <title>📄 PDF向きセンサー（最終調整）</title>
     <style>
         *{margin:0;padding:0;box-sizing:border-box;}
-        body{font-family:-apple-system,sans-serif;height:100vh;overflow:hidden;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;text-align:center;}
+        body{font-family:-apple-system,sans-serif;height:100vh;overflow:hidden;background:linear-gradient(135deg,#ff9a9e 0%,#fecfef 50%,#fecfef 100%);color:white;text-align:center;transition:background 0.5s;}
+        body.pdf{background:linear-gradient(135deg,#a8edea 0%,#fed6e3 100%);}
+        body.list{background:linear-gradient(135deg,#ffecd2 0%,#fcb69f 100%);}
         .container{max-width:95vw;padding:20px;height:100vh;display:flex;flex-direction:column;justify-content:center;}
-        .header{font-size:3em;font-weight:900;margin:20px 0;background:linear-gradient(45deg,#ffd700,#ffed4e);-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-shadow:0 0 30px rgba(255,215,0,0.5);}
-        .pdf-viewer{width:90%;height:350px;border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,0.5);border:3px solid rgba(255,255,255,0.3);margin:15px auto;display:block;}
-        .content{font-size:1.4em;line-height:1.6;background:rgba(255,255,255,0.15);color:white;padding:25px;border-radius:25px;max-height:35vh;overflow:auto;margin:10px 0;}
-        .instruction{font-size:1.3em;margin:20px 0;padding:15px;background:rgba(255,255,255,0.2);border-radius:20px;}
-        .debug{position:fixed;top:10px;left:10px;background:rgba(0,0,0,0.8);color:#00ff88;padding:12px;border-radius:15px;font-family:monospace;font-size:0.9em;max-width:90vw;}
-        .btn{background:linear-gradient(45deg,#ff6b6b,#ee5a52);color:white;border:none;padding:18px 35px;font-size:1.3em;border-radius:40px;cursor:pointer;margin:10px;box-shadow:0 12px 30px rgba(0,0,0,0.4);transition:all .3s;font-weight:600;}
-        .btn:hover{transform:translateY(-5px) scale(1.05);box-shadow:0 18px 40px rgba(0,0,0,0.5);}
-        .btn.active{background:linear-gradient(45deg,#4facfe,#00f2fe);}
+        .header{font-size:3.2em;font-weight:900;margin:20px 0;background:linear-gradient(45deg,#667eea,#764ba2);-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-shadow:0 0 30px rgba(102,126,234,0.6);}
+        .pdf-viewer{width:92%;height:380px;border-radius:25px;box-shadow:0 25px 70px rgba(0,0,0,0.4);border:4px solid rgba(255,255,255,0.6);margin:15px auto;}
+        .content{font-size:1.5em;line-height:1.7;background:rgba(255,255,255,0.2);backdrop-filter:blur(15px);padding:30px;border-radius:25px;max-height:40vh;overflow:auto;margin:15px 0;}
+        .instruction{font-size:1.4em;margin:25px 0;padding:20px;background:rgba(255,255,255,0.25);border-radius:20px;border:2px solid rgba(255,255,255,0.4);}
+        .debug{position:fixed;top:15px;left:15px;background:rgba(0,0,0,0.85);color:#00ff88;padding:15px;border-radius:20px;font-family:monospace;font-size:1em;max-width:90vw;box-shadow:0 10px 30px rgba(0,0,0,0.5);}
+        .btn{background:linear-gradient(45deg,#4facfe,#00f2fe);color:white;border:none;padding:20px 40px;font-size:1.4em;border-radius:50px;cursor:pointer;margin:12px;box-shadow:0 15px 40px rgba(79,172,254,0.4);transition:all .3s;font-weight:600;}
+        .btn:hover{transform:translateY(-6px) scale(1.06);box-shadow:0 20px 50px rgba(79,172,254,0.6);}
         #mainScreen{display:none;}
     </style>
 </head>
-<body>
-    <div class="debug" id="debug">準備中...</div>
+<body class="pdf">
+    <div class="debug" id="debug">γ値を確認中...</div>
     <div class="container">
         <div id="startScreen">
-            <h1 style="font-size:2.5em;margin-bottom:20px;">🚀 PDFモーションセンサー</h1>
-            <div class="instruction">📱 <strong>右振る→PDF　左振る→リスト</strong></div>
-            <button class="btn" onclick="startApp()">🎯 開始</button>
-            <div style="font-size:1.1em;margin-top:20px;">振ってない場合は手動ボタンで</div>
-            <button class="btn" onclick="showPDF()" style="background:linear-gradient(45deg,#4facfe,#00f2fe);">📄 PDF</button>
-            <button class="btn" onclick="showList()">✅ リスト</button>
+            <div class="header">📱 PDF自動切り替え</div>
+            <div class="instruction">
+                <strong>あなたのiPhone仕様</strong><br>
+                ➡️ <strong>右傾け（γ負）= PDF</strong><br>
+                ⬅️ <strong>左傾け（γ正）= リスト</strong>
+            </div>
+            <button class="btn" onclick="startSensor()">🎯 センサー開始</button>
         </div>
-        
         <div id="mainScreen">
-            <div class="header" id="title">PDF資料</div>
-            <div class="instruction" id="instr">右に振ってPDF表示</div>
-            <iframe id="pdfFrame" class="pdf-viewer" style="display:none;" src="document.pdf#zoom=120" frameborder="0"></iframe>
+            <div class="header" id="title">document.pdf</div>
+            <div class="instruction" id="instruction">右傾けでPDF固定</div>
+            <iframe id="pdfViewer" class="pdf-viewer" src="document.pdf#zoom=110" frameborder="0"></iframe>
             <div class="content" id="content"></div>
         </div>
     </div>
-
     <script>
-        let motionActive = false, currentMode = 'pdf';
+        let sensorActive = false;
         
-        function startApp() {
-            motionActive = true;
+        async function startSensor() {
+            try {
+                if (DeviceOrientationEvent?.requestPermission) {
+                    await DeviceOrientationEvent.requestPermission();
+                }
+            } catch(e) {}
+            
+            sensorActive = true;
             document.getElementById('startScreen').style.display = 'none';
             document.getElementById('mainScreen').style.display = 'block';
-            window.addEventListener('devicemotion', onMotion);
-            window.addEventListener('deviceorientation', onOrientation);
-            updateDebug('✅ 両センサー稼働中');
-            showPDF();
+            window.addEventListener('deviceorientation', handleTilt);
+            document.body.classList.add('pdf');
+            updateContent('pdf');
         }
         
-        // モーション検知（振る）
-        function onMotion(e) {
-            if (!motionActive) return;
-            const x = e.accelerationIncludingGravity?.x || 0;
-            updateDebug(`振動X:${x.toFixed(1)}`);
-            if (Math.abs(x) > 12) {
-                if (x > 0) showPDF();
-                else showList();
+        function handleTilt(e) {
+            const gamma = e.gamma || 0;
+            updateDebug(`γ:${gamma.toFixed(1)}° | ${gamma>10?'左リスト':gamma<-10?'右PDF':'中央'}`);
+            
+            // あなたのiPhone仕様に最適化
+            if (gamma > 10) {  // 左傾き（+）
+                if (!document.body.classList.contains('list')) {
+                    document.body.classList.remove('pdf');
+                    document.body.classList.add('list');
+                    updateContent('list');
+                }
+            } else if (gamma < -10) {  // 右傾き（-）
+                if (!document.body.classList.contains('pdf')) {
+                    document.body.classList.remove('list');
+                    document.body.classList.add('pdf');
+                    updateContent('pdf');
+                }
             }
         }
         
-        // 向き検知（傾ける）
-        function onOrientation(e) {
-            if (!motionActive) return;
-            const gamma = e.gamma || 0;
-            updateDebug(`向きγ:${gamma.toFixed(1)}°`);
-            if (gamma > 15) showPDF();
-            else if (gamma < -15) showList();
-        }
-        
-        function showPDF() {
-            if (currentMode === 'pdf') return;
-            currentMode = 'pdf';
-            document.getElementById('title').textContent = '📄 document.pdf';
-            document.getElementById('instr').innerHTML = '⬅️左振る/傾ける→リスト';
-            document.getElementById('pdfFrame').style.display = 'block';
-            document.getElementById('content').innerHTML = `
-                <strong>🎯 PDF営業資料</strong><br>
-                • 自動GitHub読み込み<br>
-                • ピンチズームOK<br>
-                • フルスクリーン対応<br><br>
-                <strong>📊 使い方</strong><br>
-                ➡️右振る：このPDF固定<br>
-                ⬅️左振る：チェックリスト
-            `;
-            updateDebug('PDFモード');
-        }
-        
-        function showList() {
-            if (currentMode === 'list') return;
-            currentMode = 'list';
-            document.getElementById('title').textContent = '✅ チェックリスト';
-            document.getElementById('instr').innerHTML = '➡️右振る/傾ける→PDF';
-            document.getElementById('pdfFrame').style.display = 'none';
-            document.getElementById('content').innerHTML = `
-                <h3>契約チェックリスト</h3>
-                <div style="text-align:left;font-size:1.1em;">
-                    ✅ <strong>完了</strong><br>
-                    ・見積書発行<br>
-                    ・仕様確認<br><br>
-                    ⚠️ <strong>進行中</strong><br>
-                    ・部長承認<br>
-                    ・法務チェック<br><br>
-                    ⏳ <strong>残タスク</strong><br>
-                    ・決裁印<br>
-                    ・支払条件確認
-                </div>
-                <div style="margin-top:20px;padding:15px;background:rgba(255,255,255,0.3);border-radius:15px;">
+        function updateContent(mode) {
+            const isPdf = mode === 'pdf';
+            document.getElementById('title').textContent = isPdf ? '📄 document.pdf' : '✅ チェックリスト';
+            document.getElementById('instruction').innerHTML = isPdf ? 
+                '⬅️左傾け（γ+）でリストへ' : '➡️右傾け（γ-）でPDFへ';
+            document.getElementById('pdfViewer').style.display = isPdf ? 'block' : 'none';
+            
+            document.getElementById('content').innerHTML = isPdf ? `
+                <strong>🎯 PDF営業資料（自動）</strong><br>
+                • GitHub HTTPS直読み込み<br>
+                • 自動ズーム調整<br>
+                • ピンチ操作対応<br><br>
+                <strong>📱 動作確認</strong><br>
+                γ${gamma>0?'>10左':'<-10右'}で切り替え
+            ` : `
+                <strong>契約チェックリスト</strong><br><br>
+                ✅ 見積書発行<br>
+                ✅ 仕様確認<br>
+                ⚠️ 部長承認 <em>(進行中)</em><br>
+                ⏳ 決裁印<br>
+                ⏳ 支払条件<br><br>
+                <div style="margin-top:20px;font-size:1.1em;">
                     <strong>⏰ 締切：4/28</strong>
                 </div>
             `;
-            updateDebug('リストモード');
         }
         
         function updateDebug(text) {
